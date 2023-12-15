@@ -1,15 +1,18 @@
 import express from 'express'
-import http from 'http';
 import dotenv from "dotenv";
 import pg from 'pg';
 import fs from 'fs';
 import cors from 'cors';
+import bp from 'body-parser';
 
 dotenv.config();
-const app = express();
-app.use(cors);
-app.use(express.json());
 
+const PORT = process.env.SERVERPORT;
+
+const app = express();
+app.use(cors());
+app.use(bp.urlencoded({ extended: false }));
+app.use(bp.json())
 
 var client = new pg.Client({
     user: process.env.PGUSER,
@@ -23,14 +26,18 @@ var client = new pg.Client({
     }
 });
 
-await client.connect()
-
-console.log(await client.query('SELECT NOW()'))
-
-await client.end()
-//await client.connect()
+// await client.connect()
+// console.log('Connected to database.')
+// await client.end()
 
 app.get("/api", (req, res) => {
-    res.send({ message: "Hello from Express!" });
+    res.json({content: 'hello'})
 });
-app.listen(process.env.PORT, () => console.log(`Listening on port ${process.env.PORT}`));
+
+app.post("/api", (req, res) => {
+   const data = req.body.json()
+});
+
+app.listen(PORT, () => {
+    console.log(`Listening on port ${PORT}`)
+});

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Header from "./Header";
 import Footer from "./Footer";
 import Note from "./Note";
@@ -6,8 +6,14 @@ import BabyNote from "./BabyNote";
 import notes from "../notes";
 
 function App() {
-  const [backendData, setBackendData] = useState([{}])
+  const [noteData, setNoteData] = useState("")
   const [curNotes, setNotes] = useState(notes);
+
+  useEffect(()=>{
+    fetch('http://localhost:7777/api')
+        .then((res) => res.json())
+        .then((data) => setNoteData(data.content))
+  },[]);
 
   function addNote(newNote) {
     setNotes([...curNotes, newNote]);
@@ -30,15 +36,19 @@ function App() {
       );
     });
   }
-
-  return (
-    <div>
-      <Header />
-      <BabyNote onAdd={addNote} />
-      {createNotes()}
-      <Footer />
-    </div>
+  return(
+      <div>
+        <p>{noteData}</p>
+      </div>
   );
+  // return (
+  //   <div>
+  //     <Header />
+  //     <BabyNote onAdd={addNote} />
+  //     {createNotes()}
+  //     <Footer />
+  //   </div>
+  // );
 }
 
 export default App;
