@@ -14,7 +14,7 @@ app.use(cors());
 app.use(bp.urlencoded({ extended: false }));
 app.use(bp.json())
 
-var client = new pg.Client({
+var pool = new pg.Pool({
     user: process.env.PGUSER,
     password: process.env.PGPASSWORD,
     database: process.env.PGDATABASE,
@@ -26,12 +26,12 @@ var client = new pg.Client({
     }
 });
 
-await client.connect()
+await pool.connect()
 console.log('Connected to database.')
 
 app.get("/api", (req, res) => {
     const text = 'SELECT * FROM Notes';
-    client.query(text).then(result =>{
+    pool.query(text).then(result =>{
         res.send(result.rows)
     }).catch(err => {
         console.log(err);
@@ -41,7 +41,19 @@ app.get("/api", (req, res) => {
 });
 
 app.post("/api", (req, res) => {
-   const data = req.body.json()
+    const data = req.body
+    if(data.type==='add'){
+        console.log('Adding to DB')
+        const text = `INSERT INTO Notes(title, content) VALUES (${data.note.title}, ${data.note.content})`;
+        pool.query(text).then(res.sendStatus(200));
+    }
+    else if(data.type==='delete'){
+        console.log('Deleting from DB.')
+        console.log(data.nid)
+        const text = `DELETE FROM Notes WHERE nid=${data.nid}`;
+        pool.query(text).then(res.sendStatus(200));
+    }
+
 });
 
 app.listen(PORT, () => {
