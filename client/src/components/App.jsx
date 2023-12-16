@@ -3,7 +3,6 @@ import Header from "./Header";
 import Footer from "./Footer";
 import Note from "./Note";
 import BabyNote from "./BabyNote";
-import {render} from "react-dom";
 
 const api_url = 'http://localhost:7777/api'
 
@@ -12,6 +11,7 @@ function App() {
   const [state, setState] = useState(0);
 
   useEffect(()=>{
+    //Initialize curNotes.
     fetch(api_url)
         .then((res) => res.json())
         .then((data) => setNotes(data))
@@ -24,6 +24,7 @@ function App() {
       body: JSON.stringify({type: 'add', note:newNote})
     };
 
+    //Send POST request, wait for OK from server, then change state to reflect on the client side.
     await fetch(api_url, requestOptions);
     setState(state+1);
 
@@ -36,12 +37,13 @@ function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({type: 'delete', nid:id})
     };
-
+    //Send POST request, wait for OK from server, then change state to reflect on the clide side.
     await fetch(api_url, requestOptions);
     setState(state+1);
   }
 
   function createNotes() {
+    //idx no longer used to map, we have nid.
     return curNotes.map((note) => {
       return (
         <Note
