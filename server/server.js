@@ -26,12 +26,17 @@ var client = new pg.Client({
     }
 });
 
-// await client.connect()
-// console.log('Connected to database.')
-// await client.end()
+await client.connect()
+console.log('Connected to database.')
 
 app.get("/api", (req, res) => {
-    res.json({content: 'hello'})
+    const text = "SELECT * FROM Notes"
+    client.query(text).then(result =>{
+        res.send(result.rows)
+    }).catch(err => {
+        console.log(err)
+        res.sendStatus(501);
+    })
 });
 
 app.post("/api", (req, res) => {
