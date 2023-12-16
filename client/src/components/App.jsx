@@ -3,23 +3,23 @@ import Header from "./Header";
 import Footer from "./Footer";
 import Note from "./Note";
 import BabyNote from "./BabyNote";
-import notes from "../notes";
 
 function App() {
-  const [noteData, setNoteData] = useState("")
-  const [curNotes, setNotes] = useState(notes);
+  const [curNotes, setNotes] = useState([]);
+  const [state, setState] = useState(0);
 
   useEffect(()=>{
     fetch('http://localhost:7777/api')
         .then((res) => res.json())
-        .then((data) => setNoteData(data.content))
-  },[]);
+        .then((data) => setNotes(data))
+  },[state]);
 
   function addNote(newNote) {
     setNotes([...curNotes, newNote]);
   }
 
   function deleteNote(id) {
+    //const deletedNote = curNotes.filter((__, idx) => idx === id)
     setNotes(curNotes.filter((__, idx) => idx !== id));
   }
 
@@ -36,19 +36,15 @@ function App() {
       );
     });
   }
-  return(
-      <div>
-        <p>{noteData}</p>
-      </div>
+
+  return (
+    <div>
+      <Header />
+      <BabyNote onAdd={addNote} />
+      {createNotes()}
+      <Footer />
+    </div>
   );
-  // return (
-  //   <div>
-  //     <Header />
-  //     <BabyNote onAdd={addNote} />
-  //     {createNotes()}
-  //     <Footer />
-  //   </div>
-  // );
 }
 
 export default App;
