@@ -44,12 +44,11 @@ app.post("/api", (req, res) => {
     const data = req.body
     if(data.type==='add'){
         console.log('Adding to DB')
-        const text = `INSERT INTO Notes(title, content) VALUES (${data.note.title}, ${data.note.content})`;
+        const text = `INSERT INTO Notes(title, content) VALUES ('${data.note.title}', '${data.note.content}')`;
         pool.query(text).then(res.sendStatus(200));
     }
     else if(data.type==='delete'){
         console.log('Deleting from DB.')
-        console.log(data.nid)
         const text = `DELETE FROM Notes WHERE nid=${data.nid}`;
         pool.query(text).then(res.sendStatus(200));
     }

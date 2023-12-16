@@ -17,26 +17,16 @@ function App() {
         .then((data) => setNotes(data))
   },[state]);
 
-  function addNote(newNote) {
+  async function addNote(newNote) {
     const requestOptions = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({type: 'add', note:newNote})
     };
 
-    fetch(api_url, requestOptions)
-        .then(response => response.json())
-        .then(data => {
-          if(data.ok){
-            setState(state+1)
-          }
-          else{
-            render(<div>501 Error</div>)
-          }
-        })
+    await fetch(api_url, requestOptions);
+    setState(state+1);
 
-    // setNotes([...curNotes, newNote]);
-    // setState(state+1);
   }
 
   async function deleteNote(id) {
