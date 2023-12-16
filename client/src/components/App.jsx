@@ -3,42 +3,52 @@ import Header from "./Header";
 import Footer from "./Footer";
 import Note from "./Note";
 import BabyNote from "./BabyNote";
-import notes from "../notes";
-import dotenv from 'dotenv';
+
+const api_url = 'http://localhost:7777/api'
 
 function App() {
-  const [curNotes, setNotes] = useState([{}]);
+  const [curNotes, setNotes] = useState([]);
+  const [state, setState] = useState(0);
 
   useEffect(()=>{
-    fetch('http://localhost:7777/api')
+    //Initialize curNotes.
+    fetch(api_url)
         .then((res) => res.json())
-        .then((data) => {
-          setNotes(data)
-        })
-  },[]);
+        .then((data) => setNotes(data))
+  },[state]);
 
-  function addNote(newNote) {
-      const requestOptions = {
-          method:'POST',
-          headers:{ 'Content-Type': 'application/json' },
-          body: JSON.stringify({type:'add', note: newNote})
-      }
+  async function addNote(newNote) {
+    const requestOptions = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({type: 'add', note:newNote})
+    };
 
-      setNotes([...curNotes, newNote]);
+    //Send POST request, wait for OK from server, then change state to reflect on the client side.
+    await fetch(api_url, requestOptions);
+    setState(state+1);
+
   }
 
-  function deleteNote(id) {
-      const deletedNote = curNotes.filter((__, idx) => idx === id)
+  async function deleteNote(id) {
 
-    setNotes(curNotes.filter((__, idx) => idx !== id));
+    const requestOptions = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({type: 'delete', nid:id})
+    };
+    //Send POST request, wait for OK from server, then change state to reflect on the clide side.
+    await fetch(api_url, requestOptions);
+    setState(state+1);
   }
 
   function createNotes() {
-    return curNotes.map((note, idx) => {
+    //idx no longer used to map, we have nid.
+    return curNotes.map((note) => {
       return (
         <Note
-          key={idx}
-          id={idx}
+          key={note.nid}
+          id={note.nid}
           title={note.title}
           content={note.content}
           onDelete={deleteNote}
@@ -46,6 +56,7 @@ function App() {
       );
     });
   }
+
   return (
     <div>
       <Header />
