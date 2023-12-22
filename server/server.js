@@ -4,6 +4,9 @@ import pg from 'pg';
 import fs from 'fs';
 import cors from 'cors';
 import bp from 'body-parser';
+import apm from 'elastic-apm-node'
+import { ecsFormat } from '@elastic/ecs-pino-format'
+import pino from 'pino'
 
 dotenv.config();
 
@@ -13,6 +16,14 @@ const app = express();
 app.use(cors());
 app.use(bp.urlencoded({ extended: false }));
 app.use(bp.json())
+
+const apm = apm.start(
+
+);
+
+const log = pino(ecsFormat(/* options */));
+log.info('hi');
+log.error({ err: new Error('boom') }, 'oops there is a problem');
 
 //DB connection setup.
 var pool = new pg.Pool({
@@ -32,6 +43,7 @@ console.log('Connected to database.')
 
 app.get("/api", (req, res) => {
     //Query DB to make Note information available on the API.
+    const span = apm.startSpan('db notes api data');
     const text = 'SELECT * FROM Notes';
     pool.query(text).then(result =>{
         res.send(result.rows)
@@ -39,12 +51,15 @@ app.get("/api", (req, res) => {
         console.log(err);
         res.sendStatus(501)
     })
+    if(span) span.end();
 
 });
 
 app.post("/api", (req, res) => {
     const data = req.body
+    const span = apm.startSpan();
     if(data.type==='add'){
+        span.name = 'api add';
         //Insert single Note in DB
         console.log('Adding to DB')
         const text = `INSERT INTO Notes(title, content) VALUES ('${data.note.title}', '${data.note.content}')`;
@@ -52,10 +67,12 @@ app.post("/api", (req, res) => {
     }
     else if(data.type==='delete'){
         //Delete single Note from DB.
-        console.log('Deleting from DB.')
+        span.name = 'api delete';
+        console.log('Deleting from DB.');
         const text = `DELETE FROM Notes WHERE nid=${data.nid}`;
         pool.query(text).then(res.sendStatus(200));
     }
+    if(span) span.end();
 });
 
 app.listen(PORT, () => {
