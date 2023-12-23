@@ -17,13 +17,18 @@ app.use(cors());
 app.use(bp.urlencoded({ extended: false }));
 app.use(bp.json())
 
-const apm = apm.start(
+// Add this to the very top of the first file loaded in your app
+const perf = apm.start({
+    serviceName: 'keeps',
 
-);
+    secretToken: 'Nmz6vpHwFXnOXdKO3w',
 
-const log = pino(ecsFormat(/* options */));
-log.info('hi');
-log.error({ err: new Error('boom') }, 'oops there is a problem');
+    serverUrl: 'https://0ec13320672f44ac9c92b32d94cd58b7.apm.us-east-2.aws.elastic-cloud.com:443',
+
+    environment: 'keeps-env'
+});
+
+const log = pino(ecsFormat(/* options */), pino.destination('./app.log'));
 
 //DB connection setup.
 var pool = new pg.Pool({
@@ -39,42 +44,44 @@ var pool = new pg.Pool({
 });
 
 await pool.connect()
-console.log('Connected to database.')
+log.info('Connected to database.')
 
 app.get("/api", (req, res) => {
     //Query DB to make Note information available on the API.
-    const span = apm.startSpan('db notes api data');
+    const span = perf.startSpan('db notes api data');
     const text = 'SELECT * FROM Notes';
     pool.query(text).then(result =>{
         res.send(result.rows)
     }).catch(err => {
-        console.log(err);
+        log.info(err);
         res.sendStatus(501)
     })
+    log.info('Opened API')
     if(span) span.end();
 
 });
+
 
 app.post("/api", (req, res) => {
     const data = req.body
-    const span = apm.startSpan();
     if(data.type==='add'){
-        span.name = 'api add';
+        const span = perf.startSpan('api add');
         //Insert single Note in DB
-        console.log('Adding to DB')
+        log.info('Adding to DB')
         const text = `INSERT INTO Notes(title, content) VALUES ('${data.note.title}', '${data.note.content}')`;
         pool.query(text).then(res.sendStatus(200));
+        if(span) span.end();
     }
     else if(data.type==='delete'){
         //Delete single Note from DB.
-        span.name = 'api delete';
-        console.log('Deleting from DB.');
+        const span = perf.startSpan('api delete');
+        log.info('Deleting from DB.')
         const text = `DELETE FROM Notes WHERE nid=${data.nid}`;
         pool.query(text).then(res.sendStatus(200));
+        if(span) span.end();
     }
-    if(span) span.end();
 });
 
 app.listen(PORT, () => {
-    console.log(`Listening on port ${PORT}`)
+    log.info(`Listening on port ${PORT}`)
 });
