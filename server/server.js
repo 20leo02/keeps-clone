@@ -9,39 +9,30 @@ import { ecsFormat } from '@elastic/ecs-pino-format'
 import pino from 'pino'
 
 dotenv.config();
-
 const agent = apm.start({
-    serviceName: 'keeps',
+    serviceName: process.env.APM_SN,
 
-    secretToken: 'Nmz6vpHwFXnOXdKO3w',
+    secretToken: process.env.APM_ST,
 
-    serverUrl: 'https://0ec13320672f44ac9c92b32d94cd58b7.apm.us-east-2.aws.elastic-cloud.com:443',
+    serverUrl: process.env.APM_URL,
 
-    environment: 'keeps-env',
-
-    active: true,
+    environment: process.env.APM_ENV,
 });
-
-agent.startTransaction('keeps-transaction');
-const traceparent = agent.currentTraceparent
-agent.endTransaction();
 const PORT = process.env.SERVERPORT;
 //App setup.
 const app = express();
 app.use(cors());
 app.use(bp.urlencoded({ extended: false }));
 app.use(bp.json())
-
-// Add this to the very top of the first file loaded in your app
 const log = pino(
-    ecsFormat({
-        serviceName: 'keeps',
-    }),
+    ecsFormat({}),
     pino.destination('./app.log'));
 
-log.info(`APM Agent status: ${apm.isStarted()?'Online':'Offline'}`)
+log.info(`APM Agent status: ${agent.isStarted()?'Online':'Offline'}`)
 
 //DB connection setup.
+const con_tr = apm.startTransaction('DB connection')
+const con_span = con_tr.startSpan('db connect')
 log.info('Connecting to database...')
 var pool = new pg.Pool({
     user: process.env.PGUSER,
@@ -57,10 +48,14 @@ var pool = new pg.Pool({
 
 await pool.connect()
 log.info('Connected to database.')
+if(con_span) con_span.end()
+if(con_tr) con_tr.end()
 
 app.get("/api", (req, res) => {
+    const fetch_tr = agent.startTransaction('DB fetch')
     //Query DB to make Note information available on the API.
-    const span = agent.startSpan('db notes api data');
+    const f_span = fetch_tr.startSpan('db notes api data');
+    log.info('inserting into api...')
     const text = 'SELECT * FROM Notes';
     pool.query(text).then(result =>{
         res.send(result.rows)
@@ -68,32 +63,37 @@ app.get("/api", (req, res) => {
         log.info(err);
         res.sendStatus(501)
     })
-    log.info('Opened API')
-    if(span) span.end();
-
+    log.info('insertion successful')
+    if(f_span) f_span.end();
+    if(fetch_tr) fetch_tr.end()
 });
 
 
 app.post("/api", (req, res) => {
+    const edit_tr = agent.startTransaction('DB edit')
     const data = req.body
     if(data.type==='add'){
-        const span = agent.startSpan('api add');
+        const add_span = edit_tr.startSpan('api add');
         //Insert single Note in DB
         log.info('Adding to DB')
         const text = `INSERT INTO Notes(title, content) VALUES ('${data.note.title}', '${data.note.content}')`;
         pool.query(text).then(res.sendStatus(200));
-        if(span) span.end();
+        log.info('Added to DB')
+        if(add_span) add_span.end();
     }
     else if(data.type==='delete'){
         //Delete single Note from DB.
-        const span = agent.startSpan('api delete');
+        const del_span = edit_tr.startSpan('api delete');
         log.info('Deleting from DB.')
         const text = `DELETE FROM Notes WHERE nid=${data.nid}`;
         pool.query(text).then(res.sendStatus(200));
-        if(span) span.end();
+        log.info('Deleted from DB')
+        if(del_span) del_span.end();
     }
+    if(edit_tr) edit_tr.end()
 });
 
+app.use(agent.middleware.connect())
 app.listen(PORT, () => {
     log.info(`Listening on port ${PORT}`)
 });
