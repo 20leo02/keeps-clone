@@ -11,5 +11,5 @@ phases:
       - npm run build
   post_build:
     commands:
-      - aws s3 sync build s3://keeps-web --delete
+      - aws s3 sync build s3://keeps-browser --delete
       - echo build completed on `date`
