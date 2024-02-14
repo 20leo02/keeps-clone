@@ -2,7 +2,7 @@ version: 0.2
 phases:
   install:
     commands:
-      - cd root/client
+      - cd client
       - echo Installing dependencies...
       - npm install
   build:
