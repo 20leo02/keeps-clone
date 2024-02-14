@@ -4,7 +4,7 @@ import Footer from "./Footer";
 import Note from "./Note";
 import BabyNote from "./BabyNote";
 
-const api_url = 'http://localhost:7777/api'
+const api_url = 'https://x1qrjs5h5h.execute-api.us-east-1.amazonaws.com/api'
 
 function App() {
   const [curNotes, setNotes] = useState([]);
