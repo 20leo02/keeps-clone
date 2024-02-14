@@ -1,0 +1,15 @@
+version: 0.2
+phases:
+  install:
+    commands:
+      - cd root/client
+      - echo Installing dependencies...
+      - npm install
+  build:
+    commands:
+      - echo Building project...
+      - npm run build
+  post_build:
+    commands:
+      - aws s3 sync build s3://keeps-web --delete
+      - echo build completed on `date`
